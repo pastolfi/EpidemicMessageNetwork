@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">EpidemicMessageNetwork</string>
+    <string name="action_discovery">Discovery...</string>
+    <string name="action_advertising">Advertising...</string>
+</resources>
