@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -15,12 +16,14 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 
 import hello.world.emn.database.DatabaseHelper;
 import hello.world.emn.database.model.Location;
@@ -46,7 +49,8 @@ public class MainActivity extends AppCompatActivity {
                         Manifest.permission.BLUETOOTH_ADMIN,
                         Manifest.permission.ACCESS_WIFI_STATE,
                         Manifest.permission.CHANGE_WIFI_STATE,
-                        Manifest.permission.ACCESS_COARSE_LOCATION},
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION},
                 1);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -80,6 +84,16 @@ public class MainActivity extends AppCompatActivity {
                 listView.setAdapter(mAdapter1);
                 //mAdapter.notifyDataSetChanged();
                 swipeRefreshLayout.setRefreshing(false);
+            }
+        });
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                HashMap item = listHashMap.get(i);
+                String uri = String.format(Locale.ENGLISH, "geo:%f,%f", Double.parseDouble(item.get("LAT").toString()), Double.parseDouble(item.get("LON").toString()));
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                context.startActivity(intent);
             }
         });
 
