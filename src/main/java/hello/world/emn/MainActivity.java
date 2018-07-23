@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -30,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private static ArrayList<HashMap<String,String>> listHashMap;
     private DatabaseHelper db;
     private Context context;
+    private ListView listView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,12 +62,26 @@ public class MainActivity extends AppCompatActivity {
 
         db = new DatabaseHelper(this);
 
-        String[] from = new String[]{"NOME", "LAT", "LON"};
-        int[] to = new int[]{R.id.nome, R.id.lat, R.id.lon};
+        final String[] from = new String[]{"NOME", "LAT", "LON"};
+        final int[] to = new int[]{R.id.nome, R.id.lat, R.id.lon};
         listHashMap = db.getLocationsHashMap();
         mAdapter = new SimpleAdapter(this, listHashMap, R.layout.list_layout, from, to);
-        ListView listView = (ListView)findViewById(R.id.listLocation);
+        listView = (ListView)findViewById(R.id.listLocation);
         listView.setAdapter(mAdapter);
+
+        final SwipeRefreshLayout swipeRefreshLayout = (SwipeRefreshLayout)findViewById(R.id.swiperefresh);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Log.i("onRefresh", "onRefresh called from SwipeRefreshLayout");
+                listHashMap = (new DatabaseHelper(context)).getLocationsHashMap();
+                Log.i("listhashmap", listHashMap.toString());
+                SimpleAdapter mAdapter1 = new SimpleAdapter(context, listHashMap, R.layout.list_layout, from, to);
+                listView.setAdapter(mAdapter1);
+                //mAdapter.notifyDataSetChanged();
+                swipeRefreshLayout.setRefreshing(false);
+            }
+        });
 
         BroadcastReceiver MyReceiver = new BroadcastReceiver() {
             @Override
@@ -75,7 +91,9 @@ public class MainActivity extends AppCompatActivity {
                 if(action.equals("hello.world.emn.action.LOCATION_INSERT")){
                     Log.i("In Receive Action OK", "in Receive Action OK");
                     listHashMap = db.getLocationsHashMap();
-                    mAdapter.notifyDataSetChanged();
+                    SimpleAdapter mAdapter1 = new SimpleAdapter(context, listHashMap, R.layout.list_layout, from, to);
+                    listView.setAdapter(mAdapter1);
+                   // mAdapter.notifyDataSetChanged();
                 }
             }
         };

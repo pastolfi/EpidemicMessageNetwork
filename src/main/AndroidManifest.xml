@@ -33,6 +33,9 @@
         <service
             android:name=".ExchangeData"
             android:exported="false"></service>
+        <receiver android:name=".Receiver">
+
+        </receiver>
 
     </application>
 
