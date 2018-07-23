@@ -1,8 +1,10 @@
 package hello.world.emn;
 
 import android.app.IntentService;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -63,6 +65,8 @@ public class ExchangeData extends IntentService {
     private final SimpleArrayMap<Long, NotificationCompat.Builder> incomingPayloads = new SimpleArrayMap<>();
     private final SimpleArrayMap<Long, NotificationCompat.Builder> outgoingPayloads = new SimpleArrayMap<>();
     private Context cont;
+    public static final String NOTIFICATION_CHANNEL_ID = "10001";
+
 
     // TODO: Rename parameters
     /*private static final String EXTRA_PARAM1 = "hello.world.emn.extra.PARAM1";
@@ -103,11 +107,12 @@ public class ExchangeData extends IntentService {
     }
 
     public static void setActionStopAdvertising(Context context){
+        Log.i("ActionStopAdvertising", "setActionStopAdvertising");
         Intent intent = new Intent(context, ExchangeData.class);
         intent.setAction(ACTION_STOP_ADVERTISING);
         //intent.putExtra(EXTRA_PARAM1, param1);
         //intent.putExtra(EXTRA_PARAM2, param2);
-        context.stopService(intent);
+        context.startService(intent);
     }
 
     /**
@@ -118,11 +123,12 @@ public class ExchangeData extends IntentService {
      */
     // TODO: Customize helper method
     public static void startActionStopDiscovery(Context context){ //, String param1, String param2) {
+        Log.i("ActionStopDiscovery", "startActionStopDiscovery");
         Intent intent = new Intent(context, ExchangeData.class);
         intent.setAction(ACTION_STOP_DISCOVERY);
         //intent.putExtra(EXTRA_PARAM1, param1);
         //intent.putExtra(EXTRA_PARAM2, param2);
-        context.stopService(intent);
+        context.startService(intent);
     }
 
     @Override
@@ -141,7 +147,11 @@ public class ExchangeData extends IntentService {
                 final String param2 = intent.getStringExtra(EXTRA_PARAM2);*/
                 handleActionAdvertising(); //(param1, param2);
             }else if (ACTION_STOP_DISCOVERY.equals(action)){
+                Log.i("onHandleEvent", ACTION_STOP_DISCOVERY);
                 handleActionStopDiscovery();
+            }else if (ACTION_STOP_ADVERTISING.equals(action)){
+                Log.i("onHandleEvent", ACTION_STOP_ADVERTISING);
+                handleActionStopAdvertising();
             }
         }
     }
@@ -164,17 +174,7 @@ public class ExchangeData extends IntentService {
                             public void onSuccess(Void unusedResult) {
                                 // We're discovering!
                                 Log.i("success", "discovering started");
-                                Intent contentIntent = new Intent(context, MainActivity.class);
-                                contentIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                PendingIntent intent = PendingIntent.getActivity(context, 0,
-                                        contentIntent, 0);
-                                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context)
-                                        .setSmallIcon(R.drawable.ic_icon_notif)
-                                        .setContentTitle("Epidemic Message Network")
-                                        .setContentText("Discovering started...")
-                                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                                        .setContentIntent(intent);
-                                mNotificationManager.notify(001, mBuilder.build());
+                                buildNotification(true);
                             }
                         })
                 .addOnFailureListener(
@@ -201,17 +201,8 @@ public class ExchangeData extends IntentService {
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        Intent contentIntent = new Intent(context, MainActivity.class);
-                        contentIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        PendingIntent intent = PendingIntent.getActivity(context, 0,
-                                contentIntent, 0);
-                        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context)
-                                .setSmallIcon(R.drawable.ic_icon_notif)
-                                .setContentTitle("Epidemic Message Network")
-                                .setContentText("Advertising started...")
-                                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                                .setContentIntent(intent);
-                        mNotificationManager.notify(002, mBuilder.build());
+                        buildNotification(false);
+
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
@@ -223,8 +214,29 @@ public class ExchangeData extends IntentService {
     }
 
     private void handleActionStopDiscovery(){ //(String param1, String param2) {
+        Log.i("Stop discovery", "Stop discovery");
         Nearby.getConnectionsClient(this).stopDiscovery();
         mNotificationManager.cancel(001);
+    }
+
+    private void handleActionStopAdvertising(){
+        Log.i("Stop advertising", "Stop advertising");
+        Nearby.getConnectionsClient(this).stopAdvertising();
+        mNotificationManager.cancel(002);
+    }
+
+    @Override
+    public boolean stopService(Intent intent){
+        final String action = intent.getAction();
+        Log.i("stop service", action);
+        if (ACTION_STOP_DISCOVERY.equals(action)){
+            Log.i("stopService", ACTION_STOP_DISCOVERY);
+            handleActionStopDiscovery();
+        }else if (ACTION_STOP_ADVERTISING.equals(action)){
+            Log.i("stopService", ACTION_STOP_ADVERTISING);
+            handleActionStopAdvertising();
+        }
+        return super.stopService(intent);
     }
 
     protected String getName() {
@@ -239,18 +251,31 @@ public class ExchangeData extends IntentService {
         return randomStringBuilder.toString();
     }
 
-    private NotificationCompat.Builder buildNotification(Payload payload, boolean isIncoming) {
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(this)
-                                                .setContentTitle(isIncoming ? "Receiving..." : "Sending...");
-        int size = payload.asBytes().length;
-        boolean indeterminate = false;
-        if (size == -1) {
-            // This is a stream payload, so we don't know the size ahead of time.
-            size = 100;
-            indeterminate = true;
+    private void buildNotification(boolean isIncoming) {
+
+        Intent contentIntent = new Intent(this, Receiver.class);
+        contentIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        contentIntent.setAction(isIncoming ? ACTION_STOP_DISCOVERY : ACTION_STOP_ADVERTISING);
+        PendingIntent intent = PendingIntent.getBroadcast(this, 1,
+                contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.ic_icon_notif)
+                .setContentTitle("Epidemic Message Network")
+                .setContentText(isIncoming ? "Discovery started..." : "Advertising started...")
+                .addAction(R.drawable.ic_icon_stop, "STOP", intent)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(intent);
+        mNotificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
+        if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O){
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "EMN_CHANNEL", importance);
+            assert mNotificationManager != null;
+            mBuilder.setChannelId(NOTIFICATION_CHANNEL_ID);
+            mNotificationManager.createNotificationChannel(notificationChannel);
         }
-        notification.setProgress(size, 0, indeterminate);
-        return notification;
+        assert mNotificationManager != null;
+        mNotificationManager.notify(isIncoming ? 001 : 002, mBuilder.build());
     }
 
     protected void onReceive(Payload payload) {
