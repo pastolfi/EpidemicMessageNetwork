@@ -20,7 +20,7 @@ import android.widget.Toast;
 
 import hello.world.emn.database.DatabaseHelper;
 
-public class DataLocation extends AppCompatActivity {
+public class DataLocation extends AppCompatActivity implements LocationListener {
 
     private TextView lat;
     private TextView lon;
@@ -33,33 +33,13 @@ public class DataLocation extends AppCompatActivity {
         final TextView nome = (TextView) findViewById(R.id.nome);
         lat = (TextView) findViewById(R.id.lat);
         lon = (TextView) findViewById(R.id.lon);
+        lat.setKeyListener(null);
+        lon.setKeyListener(null);
         final Context context = this;
 
         Button add = (Button) findViewById(R.id.add);
 
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        final LocationListener locationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-                Log.i("onLocationChanged", "onLocationChanged");
-                updateMyLocation(location);
-            }
-
-            @Override
-            public void onStatusChanged(String s, int i, Bundle bundle) {
-
-            }
-
-            @Override
-            public void onProviderEnabled(String s) {
-
-            }
-
-            @Override
-            public void onProviderDisabled(String s) {
-
-            }
-        };
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
@@ -76,9 +56,7 @@ public class DataLocation extends AppCompatActivity {
         }else{
 
             Log.i("PermessiOK","Richiedo update della location");
-            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 2000, locationListener);
-
-
+            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
         }
 
 
@@ -113,5 +91,26 @@ public class DataLocation extends AppCompatActivity {
         Log.i("Location", Double.toString(latitude)+Double.toString(longitude));
         lat.setText(Double.toString(latitude));
         lon.setText(Double.toString(longitude));
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.i("onLocationChanged", "onLocationChanged");
+        updateMyLocation(location);
+    }
+
+    @Override
+    public void onStatusChanged(String s, int i, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String s) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String s) {
+
     }
 }
