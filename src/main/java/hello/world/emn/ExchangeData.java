@@ -259,13 +259,17 @@ public class ExchangeData extends IntentService {
         PendingIntent intent = PendingIntent.getBroadcast(this, 1,
                 contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
+        Intent reopenActivity = new Intent(this, MainActivity.class);
+        reopenActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent reopenIntent = PendingIntent.getActivity(this, 0, reopenActivity, 0);
+
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_icon_notif)
                 .setContentTitle("Epidemic Message Network")
                 .setContentText(isIncoming ? "Discovery started..." : "Advertising started...")
                 .addAction(R.drawable.ic_icon_stop, "STOP", intent)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(intent);
+                .setContentIntent(reopenIntent);
         mNotificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
         if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O){
             int importance = NotificationManager.IMPORTANCE_HIGH;
